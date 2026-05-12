@@ -275,4 +275,4 @@ See `SUPABASE_SETUP_GUIDE.md` and `QUICK_START.md` for step-by-step instructions
 
 ---
 
-Built by **Charisma Team — فريق كاريزما** · WhatsApp: [+201002455834](https://wa.me/201002455834)
+Built by **Charisma Team — فريق كاريزما** · WhatsApp: [+201002455834](https://wa.me/201002455834) :)
