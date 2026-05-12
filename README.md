@@ -269,11 +269,10 @@ Run `supabase_simple_schema.sql` in the Supabase SQL editor. This creates a sing
 
 ### Option B — Full enterprise schema
 
----
-
-Built by **Charisma Team — فريق كاريزما** · WhatsApp: [+201002455834](https://wa.me/201002455834)
-
-
 Run `supabase_schema.sql` followed by `supabase_seed_data.sql` for the complete multi-table schema with RLS policies, workflow enums, and relational data. This requires wiring `TrainingNeedAssessmentSupabase.tsx` and `trainingRequestService.ts` into the app instead of the current simple integration in `App.tsx`.
 
 See `SUPABASE_SETUP_GUIDE.md` and `QUICK_START.md` for step-by-step instructions.
+
+---
+
+Built by **Charisma Team — فريق كاريزما** · WhatsApp: [+201002455834](https://wa.me/201002455834)
