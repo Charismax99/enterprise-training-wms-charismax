@@ -68,6 +68,9 @@ function requestToRow(r: TrainingRequest): Record<string, unknown> {
     course_title: r.courseTitle,
     custom_course: r.customCourse,
     provider: r.provider,
+    // Mirror the value into the legacy column so installs that haven't run
+    // the V2 migration yet still satisfy its NOT NULL constraint.
+    institute_id: r.provider,
     course_weblink: r.courseWeblink,
     start_date: r.startDate,
     end_date: r.endDate,
@@ -77,6 +80,8 @@ function requestToRow(r: TrainingRequest): Record<string, unknown> {
     usd_cost: r.usdCost,
     training_method: r.trainingMethod,
     venue_location: r.venueLocation,
+    // Mirror to legacy column for back-compat.
+    venue_type: r.venueLocation,
     city: r.city,
     status: r.status,
     comments: r.comments,
@@ -126,6 +131,7 @@ export default function App() {
   const [requests, setRequests] = useState<TrainingRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState<View>({ kind: "list" });
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // ── Persist a single request (no-op in demo mode) ────────────────────────
   const saveRequest = useCallback(async (request: TrainingRequest) => {
@@ -133,7 +139,12 @@ export default function App() {
     const { error } = await supabase
       .from("training_requests")
       .upsert(requestToRow(request), { onConflict: "id" });
-    if (error) console.error("Failed to save request:", error.message);
+    if (error) {
+      console.error("Failed to save request:", error.message);
+      setSaveError(error.message);
+    } else {
+      setSaveError(null);
+    }
   }, []);
 
   // ── Load all requests ─────────────────────────────────────────────────────
@@ -297,6 +308,23 @@ export default function App() {
         <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-center text-amber-800 text-sm">
           <strong>Demo mode</strong> — data is stored locally and not shared between users.
           Add your Supabase credentials to <code className="bg-amber-100 px-1 rounded">.env</code> to enable shared persistent storage.
+        </div>
+      )}
+
+      {saveError && (
+        <div className="bg-red-50 border-b border-red-200 px-4 py-2 text-center text-red-800 text-sm flex items-center justify-center gap-3">
+          <span>
+            <strong>Database save failed:</strong> {saveError}. Run{" "}
+            <code className="bg-red-100 px-1 rounded">supabase_migration_v2.sql</code>{" "}
+            in Supabase to add the new columns.
+          </span>
+          <button
+            type="button"
+            onClick={() => setSaveError(null)}
+            className="text-red-900 underline"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
