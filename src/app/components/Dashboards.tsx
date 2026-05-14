@@ -3,8 +3,8 @@ import { TrainingRequest, User, USERS, RequestStatus } from "../data/mockData";
 import { RequestsTable } from "./RequestsTable";
 import {
   Plus, FileText, CheckCircle2, Clock, DollarSign, Users as UsersIcon,
-  Filter, Download, X, XCircle, MessageSquare, AlertTriangle,
-  Award, ShieldCheck, BarChart2, Eye, GitBranch, UserPlus,
+  Filter, Download, X, MessageSquare, AlertTriangle,
+  ShieldCheck, BarChart2, Eye, GitBranch, UserPlus,
   Search, TrendingUp, Building2, BookOpen,
 } from "lucide-react";
 
@@ -232,7 +232,7 @@ export function EmployeeDashboard({
     <div className="space-y-6">
       {/* 3 Functional Icons */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <FuncCard icon={FileText}     label="My Requests"  value={mine.length}     color="bg-[#2D5A39]" />
+        <FuncCard icon={FileText}     label="My Request"   value={mine.length}     color="bg-[#2D5A39]" />
         <FuncCard icon={CheckCircle2} label="Approved"     value={approved.length} color="bg-green-600" />
         <FuncCard icon={GitBranch}    label="Workflow"     value={workflow.length} color="bg-[#F6AD55]"
           sub="Requests in progress" />
@@ -256,7 +256,7 @@ export function EmployeeDashboard({
       )}
 
       <div>
-        <SectionTitle count={mine.length}>My Requests</SectionTitle>
+        <SectionTitle count={mine.length}>My Request</SectionTitle>
         <RequestsTable requests={mine} onView={onView} />
       </div>
     </div>
@@ -273,21 +273,21 @@ export function ManagerDashboard({
   onView: (r: TrainingRequest) => void; onNewNomination: () => void; onNavigateToAssessment?: () => void;
 }) {
   const myNominations = requests.filter((r) => r.nominatorId === user.id);
-  const approved  = myNominations.filter((r) => r.status === "Approved");
-  const workflow  = myNominations.filter((r) => !["Approved", "Rejected"].includes(r.status));
+  const mine = requests.filter((r) => r.employeeId === user.id);
+  const myApproved = mine.filter((r) => r.status === "Approved");
+  const myWorkflow = mine.filter((r) => !["Approved", "Rejected"].includes(r.status));
   const approvals = myNominations.filter((r) => r.status === "PendingEmployee");
   const teamMembers = USERS.filter((u) => u.managerId === user.id);
 
   return (
     <div className="space-y-6">
-      {/* 6 Functional Icons */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <FuncCard icon={FileText}     label="My Requests"         value={myNominations.length} color="bg-[#2D5A39]" />
-        <FuncCard icon={UsersIcon}    label="Total Requests"      value={myNominations.length} color="bg-[#3D7A4E]" />
-        <FuncCard icon={CheckCircle2} label="Approved"            value={approved.length}      color="bg-green-600" />
-        <FuncCard icon={GitBranch}    label="Workflow"            value={workflow.length}      color="bg-[#F6AD55]" />
+      {/* 4 Functional Icons */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <FuncCard icon={FileText}     label="My Request"  value={mine.length}        color="bg-[#2D5A39]" />
+        <FuncCard icon={CheckCircle2} label="Approved"    value={myApproved.length}  color="bg-green-600" />
+        <FuncCard icon={GitBranch}    label="Workflow"    value={myWorkflow.length}  color="bg-[#F6AD55]" />
         <FuncCard
-          icon={UserPlus} label="Send Training Request" color="bg-[#1F4128]"
+          icon={UserPlus} label="Nominate Employees" color="bg-[#1F4128]"
           onClick={onNewNomination} clickLabel="Nominate a team member"
         />
       </div>
@@ -352,29 +352,29 @@ export function UnitHeadDashboard({
 }) {
   const [modal, setModal] = useState<{ req: TrainingRequest; action: "approve" | "reject" } | null>(null);
 
-  const pending   = requests.filter((r) => r.status === "PendingUnitHead");
-  const approved  = requests.filter((r) => r.status === "Approved");
-  const workflow  = requests.filter((r) => !["Approved", "Rejected"].includes(r.status));
+  const pending  = requests.filter((r) => r.status === "PendingUnitHead");
+  const mine     = requests.filter((r) => r.employeeId === user.id);
+  const approved = mine.filter((r) => r.status === "Approved");
+  const workflow = mine.filter((r) => !["Approved", "Rejected"].includes(r.status));
 
   return (
     <div className="space-y-6">
-      {/* 6 Functional Icons */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <FuncCard icon={FileText}     label="Total Requests"     value={requests.length}      color="bg-[#2D5A39]" />
-        <FuncCard icon={CheckCircle2} label="Approved"           value={approved.length}      color="bg-green-600" />
-        <FuncCard icon={GitBranch}    label="In Progress"        value={workflow.length}      color="bg-[#F6AD55]"
+      {/* 5 Functional Icons */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <FuncCard icon={FileText}     label="My Request"         value={mine.length}     color="bg-[#2D5A39]" />
+        <FuncCard icon={CheckCircle2} label="Approved"           value={approved.length} color="bg-green-600" />
+        <FuncCard icon={GitBranch}    label="Workflow"           value={workflow.length} color="bg-[#F6AD55]"
           sub="Requests in workflow"
         />
-        <FuncCard icon={ShieldCheck}  label="Awaiting My Review" value={pending.length} color="bg-amber-500"
-          sub="Pending Unit Head review"
-        />
-        <FuncCard icon={XCircle}      label="Rejected"           value={requests.filter(r => r.status === "Rejected").length} color="bg-red-500" />
         <FuncCard
           icon={UserPlus}
-          label="Send Training Request"
+          label="Nominate Employees"
           color="bg-[#1F4128]"
           onClick={onNewNomination}
           clickLabel="Nominate a team member"
+        />
+        <FuncCard icon={ShieldCheck}  label="Training Approvals" value={pending.length}  color="bg-amber-500"
+          sub="Pending Unit Head review"
         />
       </div>
 
@@ -431,24 +431,21 @@ export function TalentDevDashboard({
 }) {
   const [modal, setModal] = useState<{ req: TrainingRequest; action: "approve" | "reject" } | null>(null);
 
-  const pending      = requests.filter((r) => r.status === "PendingTalentDev");
-  const approvedReqs = requests.filter((r) => r.status === "Approved");
-  const totalBudget  = approvedReqs.reduce((a, b) => a + b.usdCost, 0);
+  const pending = requests.filter((r) => r.status === "PendingTalentDev");
 
   return (
     <div className="space-y-6">
-      {/* 5 Functional Icons */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <FuncCard icon={GitBranch}    label="In Progress"        value={requests.filter(r => !["Approved","Rejected"].includes(r.status)).length} color="bg-[#2D5A39]" sub="Requests in workflow" />
-        <FuncCard icon={Award}       label="Awaiting Sign-off"  value={pending.length}      color="bg-[#F6AD55]" sub="Pending final approval" />
-        <FuncCard icon={CheckCircle2} label="Approved YTD"      value={approvedReqs.length} color="bg-green-600" />
-        <FuncCard icon={DollarSign}  label="Approved Budget"    value={`$${totalBudget.toLocaleString()}`} color="bg-[#1F4128]" />
+      {/* 2 Functional Icons */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <FuncCard
           icon={UserPlus}
-          label="Send Training Request"
+          label="Nominate Employees"
           color="bg-[#1F4128]"
           onClick={onNewNomination}
           clickLabel="Nominate a team member"
+        />
+        <FuncCard icon={ShieldCheck} label="Training Approvals" value={pending.length} color="bg-amber-500"
+          sub="Pending final approval"
         />
       </div>
 
@@ -596,7 +593,7 @@ export function HRAdminDashboard({
       </div>
 
       {/* ── Core Metrics ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         <FuncCard icon={FileText}     label="Grand Total Requests"  value={grandTotal}   color="bg-[#2D5A39]" />
         <FuncCard icon={CheckCircle2} label="Final Approved"        value={finalApproved} color="bg-green-600"
           sub="Completed full cycle" />
