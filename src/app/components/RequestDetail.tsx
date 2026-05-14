@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TrainingRequest, INSTITUTES, User } from "../data/mockData";
+import { TrainingRequest, User } from "../data/mockData";
 import { WorkflowTracker } from "./WorkflowTracker";
 import { SmartTrainingForm } from "./SmartTrainingForm";
 import {
@@ -40,7 +40,7 @@ export function RequestDetail({ request, user, onBack, onUpdate }: Props) {
     setConfirmComment("");
   };
 
-  const institute = INSTITUTES.find((i) => i.id === request.instituteId)?.name ?? "—";
+  const institute = request.provider || "—";
 
   return (
     <div className="space-y-6">
@@ -94,7 +94,7 @@ export function RequestDetail({ request, user, onBack, onUpdate }: Props) {
               <DetailGroup title="Course & Venue">
                 <DF icon={<BookOpen size={13} />}   label="Course"       value={request.courseTitle || "—"} />
                 <DF icon={<Building size={13} />}   label="Institute"    value={institute} />
-                <DF icon={<MapPin size={13} />}     label="Venue"        value={`${request.venueType} — ${request.city || "—"}`} />
+                <DF icon={<MapPin size={13} />}     label="Venue"        value={`${request.venueLocation || "—"} — ${request.city || "—"}`} />
               </DetailGroup>
               <DetailGroup title="Schedule & Cost">
                 <DF icon={<Calendar size={13} />}   label="Start Date"   value={request.startDate || "—"} />

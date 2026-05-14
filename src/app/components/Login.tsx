@@ -25,7 +25,7 @@ const ROLE_CARDS: RoleCard[] = [
     icon: UserIcon,
     bg: "bg-[#2D5A39]",
     border: "border-[#2D5A39]",
-    hint: "e.g. E001, E002 …",
+    hint: "e.g. 100, 400, 600, 900, 1000",
   },
   {
     role: "Manager",
@@ -34,7 +34,7 @@ const ROLE_CARDS: RoleCard[] = [
     icon: Users,
     bg: "bg-[#3D7A4E]",
     border: "border-[#3D7A4E]",
-    hint: "e.g. M001, M002",
+    hint: "e.g. 700, 800",
   },
   {
     role: "TrainingUnitHead",
@@ -43,7 +43,7 @@ const ROLE_CARDS: RoleCard[] = [
     icon: ShieldCheck,
     bg: "bg-[#1F4128]",
     border: "border-[#1F4128]",
-    hint: "e.g. UH01",
+    hint: "e.g. 200",
   },
   {
     role: "TalentDevManager",
@@ -52,7 +52,7 @@ const ROLE_CARDS: RoleCard[] = [
     icon: Award,
     bg: "bg-[#F6AD55]",
     border: "border-[#F6AD55]",
-    hint: "e.g. TD01",
+    hint: "e.g. 300",
   },
   {
     role: "HRAdmin",
@@ -61,7 +61,7 @@ const ROLE_CARDS: RoleCard[] = [
     icon: LayoutDashboard,
     bg: "bg-slate-600",
     border: "border-slate-600",
-    hint: "e.g. HR01",
+    hint: "e.g. 3030",
   },
 ];
 
@@ -93,7 +93,6 @@ export function Login({ onLogin }: { onLogin: (u: User) => void }) {
           id: empId.trim().toUpperCase(),
           name: empId.trim().toUpperCase(),
           role: selectedRole.role,
-          competency: "General",
           position: selectedRole.title,
           department: "General",
           grade: "—",
