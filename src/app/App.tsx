@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { TrainingRequest, User, INITIAL_REQUESTS } from "./data/mockData";
+import {
+  TrainingRequest,
+  User,
+  INITIAL_REQUESTS,
+  TRAINING_CATALOGUE,
+  OTHER_TRAINING_TITLE,
+} from "./data/mockData";
 import { Login } from "./components/Login";
 import { Shell } from "./components/Shell";
 import {
@@ -85,15 +91,94 @@ function requestToRow(r: TrainingRequest): Record<string, unknown> {
 }
 
 // ── Client-side AI auditor ────────────────────────────────────────────────────
+//
+// Verifies a training request before it is forwarded to the Training Unit Head:
+//   1. Required fields are present
+//   2. Date range produces a positive duration
+//   3. Cost is within the $15,000 ceiling
+//   4. The chosen course actually develops the competency the nominator requested
+//      (looked up in TRAINING_CATALOGUE). Custom / "Other" entries skip this
+//      check and are passed through with a manual-review note.
+//
+// On rejection the comment explains exactly what's wrong and lists the
+// approved courses for the requested competency so the employee can pick again.
+
+const COST_CEILING_USD = 15000;
+
+function normalize(s: string): string {
+  return s.trim().toLowerCase();
+}
 
 function aiAudit(req: TrainingRequest): { pass: boolean; comment: string } {
-  if (req.usdCost > 15000)
-    return { pass: false, comment: "AI Auditor: Cost exceeds $15,000 cap. Please justify or revise." };
-  if (req.durationDays <= 0)
-    return { pass: false, comment: "AI Auditor: Invalid date range." };
-  if (!req.courseTitle || !req.provider || !req.city || !req.venueLocation)
-    return { pass: false, comment: "AI Auditor: Missing required fields." };
-  return { pass: true, comment: "AI Auditor: All consistency checks passed. ✓" };
+  // 1. Required fields
+  const missing: string[] = [];
+  if (!req.courseTitle) missing.push("Course Title");
+  if (!req.provider) missing.push("Institute");
+  if (!req.city) missing.push("City");
+  if (!req.venueLocation) missing.push("Venue Location");
+  if (missing.length > 0) {
+    return {
+      pass: false,
+      comment: `AI Auditor: Missing required field${missing.length > 1 ? "s" : ""}: ${missing.join(", ")}.`,
+    };
+  }
+
+  // 2. Duration sanity
+  if (req.durationDays <= 0) {
+    return {
+      pass: false,
+      comment: "AI Auditor: Invalid date range — end date must be after start date.",
+    };
+  }
+
+  // 3. Cost ceiling
+  if (req.usdCost > COST_CEILING_USD) {
+    return {
+      pass: false,
+      comment: `AI Auditor: Course cost ($${req.usdCost.toLocaleString()}) exceeds the $${COST_CEILING_USD.toLocaleString()} ceiling. Please justify or choose a more affordable option.`,
+    };
+  }
+
+  // 4. Competency ↔ Training match
+  const isCustomCourse =
+    req.courseTitle === OTHER_TRAINING_TITLE || Boolean(req.customCourse);
+
+  if (isCustomCourse) {
+    return {
+      pass: true,
+      comment: `AI Auditor ✓ Custom course '${req.customCourse || req.courseTitle}' — auto-checks (cost, duration, fields) passed. Note: competency–training match could not be verified automatically; Training Unit Head should confirm relevance to '${req.competency}'.`,
+    };
+  }
+
+  const catalogueEntry = TRAINING_CATALOGUE.find(
+    (c) => normalize(c.trainingTitle) === normalize(req.courseTitle),
+  );
+
+  if (!catalogueEntry) {
+    return {
+      pass: true,
+      comment: `AI Auditor ✓ Course '${req.courseTitle}' is not in the master catalogue; auto-checks (cost, duration, fields) passed. Competency match flagged for Unit Head review.`,
+    };
+  }
+
+  if (normalize(catalogueEntry.competency) !== normalize(req.competency)) {
+    const alternatives = TRAINING_CATALOGUE
+      .filter((c) => normalize(c.competency) === normalize(req.competency))
+      .map((c) => c.trainingTitle);
+    const altList =
+      alternatives.length > 0
+        ? `${alternatives.join(", ")}.`
+        : "no approved courses found in the catalogue for this competency — please coordinate with your manager.";
+    return {
+      pass: false,
+      comment: `AI Auditor: Selected course '${catalogueEntry.trainingTitle}' develops competency '${catalogueEntry.competency}', but the request requires '${req.competency}'. Recommended courses for the required competency: ${altList}`,
+    };
+  }
+
+  return {
+    pass: true,
+    comment: `AI Auditor ✓ Competency–training match verified: '${req.competency}' ↔ '${catalogueEntry.trainingTitle}'. Cost $${req.usdCost.toLocaleString()} within budget, duration ${req.durationDays} day${req.durationDays === 1 ? "" : "s"}. Forwarded to Training Unit Head.`,
+  };
 }
 
 // ── Session helpers ───────────────────────────────────────────────────────────
