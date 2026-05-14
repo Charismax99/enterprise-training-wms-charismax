@@ -230,16 +230,8 @@ export function EmployeeDashboard({
 
   return (
     <div className="space-y-6">
-      {/* Page title and Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-[#2D5A39]" style={{ fontWeight: 800, fontSize: "1.3rem" }}>
-            My Training Dashboard
-          </h1>
-          <p className="text-[#4A5568]" style={{ fontSize: "0.85rem" }}>
-            Track and manage your training requests in real time
-          </p>
-        </div>
+      {/* Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-4">
         <button
           onClick={onNavigateToAssessment}
           className="bg-[#2D5A39] hover:bg-[#1F4128] text-white px-6 py-3 rounded-xl font-bold shadow-md flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02]"
@@ -299,13 +291,6 @@ export function ManagerDashboard({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-[#2D5A39]" style={{ fontWeight: 800, fontSize: "1.3rem" }}>Manager Dashboard</h1>
-        <p className="text-[#4A5568]" style={{ fontSize: "0.85rem" }}>
-          Manage your team's training nominations and approvals
-        </p>
-      </div>
-
       {/* 6 Functional Icons */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <FuncCard icon={FileText}     label="My Requests"         value={myNominations.length} color="bg-[#2D5A39]" />
@@ -391,15 +376,6 @@ export function UnitHeadDashboard({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-[#2D5A39]" style={{ fontWeight: 800, fontSize: "1.3rem" }}>
-          Training Unit Head Dashboard
-        </h1>
-        <p className="text-[#4A5568]" style={{ fontSize: "0.85rem" }}>
-          Technical review & approval authority
-        </p>
-      </div>
-
       {/* 6 Functional Icons */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <FuncCard icon={FileText}     label="Total Requests"     value={requests.length}      color="bg-[#2D5A39]" />
@@ -479,15 +455,6 @@ export function TalentDevDashboard({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-[#2D5A39]" style={{ fontWeight: 800, fontSize: "1.3rem" }}>
-          Talent Development Dashboard
-        </h1>
-        <p className="text-[#4A5568]" style={{ fontSize: "0.85rem" }}>
-          Final approval stage & strategic training oversight
-        </p>
-      </div>
-
       {/* 5 Functional Icons */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         <FuncCard icon={GitBranch}    label="In Progress"        value={requests.filter(r => !["Approved","Rejected"].includes(r.status)).length} color="bg-[#2D5A39]" sub="Requests in workflow" />
@@ -637,15 +604,7 @@ export function HRAdminDashboard({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-[#2D5A39]" style={{ fontWeight: 800, fontSize: "1.3rem" }}>
-            Reporting Room
-          </h1>
-          <p className="text-[#4A5568]" style={{ fontSize: "0.85rem" }}>
-            Global oversight, business intelligence & analytics
-          </p>
-        </div>
+      <div className="flex items-center justify-end">
         <button
           onClick={handleExport}
           className="flex items-center gap-2 px-5 py-2.5 bg-[#2D5A39] text-white rounded-xl hover:bg-[#1F4128] shadow-md transition-all"

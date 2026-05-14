@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { LogOut, GraduationCap, Search, X, ChevronRight } from "lucide-react";
+import { LogOut, Search, X, ChevronRight } from "lucide-react";
 import { User, TrainingRequest, RequestStatus } from "../data/mockData";
 
 const STATUS_COLOR: Record<RequestStatus, string> = {
@@ -31,12 +31,6 @@ export function Shell({ user, onLogout, children, requests = [], onViewRequest }
   const [searchQuery, setSearchQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
-
-  const initials = user.name
-    .split(" ")
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join("");
 
   const searchResults =
     searchQuery.trim().length >= 2
@@ -75,23 +69,6 @@ export function Shell({ user, onLogout, children, requests = [], onViewRequest }
       {/* ── Main header ── */}
       <header style={{ background: "linear-gradient(90deg, #1F4128 0%, #2D5A39 60%, #3D7A4E 100%)" }}>
         <div className="max-w-7xl mx-auto px-6 py-3 flex items-center gap-4">
-          {/* Logo */}
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <div className="w-10 h-10 bg-[#F6AD55] rounded-lg flex items-center justify-center shadow-md">
-              <GraduationCap size={22} className="text-white" />
-            </div>
-            <div>
-              <div className="text-white" style={{ fontWeight: 800, letterSpacing: "0.08em", fontSize: "1rem" }}>
-                T-WMS
-              </div>
-              <div className="text-green-300" style={{ fontSize: "0.64rem" }}>
-                Madarj Training System
-              </div>
-            </div>
-          </div>
-
-          <div className="hidden md:block h-8 w-px bg-white/20 mx-1" />
-
           {/* Global Search */}
           <div className="flex-1 max-w-sm relative" ref={searchRef}>
             <div className="relative">
@@ -162,22 +139,8 @@ export function Shell({ user, onLogout, children, requests = [], onViewRequest }
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* User info + logout */}
+          {/* Logout */}
           <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <div className="text-white" style={{ fontSize: "0.85rem", fontWeight: 600 }}>
-                {user.name}
-              </div>
-              <div className="text-green-300" style={{ fontSize: "0.68rem" }}>
-                {user.id}
-              </div>
-            </div>
-            <div
-              className="w-9 h-9 bg-[#F6AD55] rounded-full flex items-center justify-center text-white shadow-md"
-              style={{ fontSize: "0.78rem", fontWeight: 700 }}
-            >
-              {initials}
-            </div>
             <button
               onClick={onLogout}
               title="Sign out"
