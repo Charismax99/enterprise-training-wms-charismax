@@ -15,6 +15,7 @@ import {
   ClipboardList, BookOpen, Eye, Check,
   ChevronRight, ChevronLeft, Send,
   Calendar, DollarSign, MapPin, Building,
+  AlertTriangle,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -220,6 +221,32 @@ export function SmartTrainingForm({ request, onSubmit, onCancel, readOnly }: Pro
           })}
         </div>
       </div>
+
+      {/* AI Auditor feedback (only when the request was returned by the AI) */}
+      {request.status === "AIRejected" && (() => {
+        const lastAiComment = [...request.comments]
+          .reverse()
+          .find((c) => c.startsWith("AI Auditor"));
+        if (!lastAiComment) return null;
+        return (
+          <div className="px-8 pt-6">
+            <div className="flex items-start gap-3 p-4 rounded-xl border border-orange-200 bg-orange-50">
+              <AlertTriangle size={18} className="text-orange-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <div className="text-orange-900" style={{ fontWeight: 700, fontSize: "0.85rem" }}>
+                  AI Auditor returned this request
+                </div>
+                <p className="text-orange-900/90 mt-1" style={{ fontSize: "0.82rem", lineHeight: 1.55 }}>
+                  {lastAiComment.replace(/^AI Auditor:?\s*/, "")}
+                </p>
+                <p className="text-orange-700/80 mt-2" style={{ fontSize: "0.75rem" }}>
+                  Update the highlighted field(s) below and re-submit for another AI audit.
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="p-8">
         {/* ─── STEP 1: Manager Selection (read-only) ─── */}
