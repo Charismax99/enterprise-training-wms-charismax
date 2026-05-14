@@ -1,156 +1,144 @@
-import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
-import { createClient } from "@supabase/supabase-js";
-import { USERS } from "../data/mockData";
+import { useMemo, useState } from "react";
+import { ArrowLeft, UserCircle2, Users, BookOpen, Calendar, FileText } from "lucide-react";
+import {
+  USERS,
+  QUARTERS,
+  TrainingRequest,
+  User,
+  competenciesForDepartment,
+} from "../data/mockData";
 
-const GRADES = ["Grade 1 — Junior","Grade 2 — Mid-level","Grade 3 — Senior","Grade 4 — Lead","Grade 5 — Principal"];
-const COMPETENCIES = ["Leadership & Management","Technical Skills","Communication","Problem Solving","Project Management"];
-const TIMEFRAMES = ["Q1 (Jan–Mar)","Q2 (Apr–Jun)","Q3 (Jul–Sep)","Q4 (Oct–Dec)","Annual"];
-const TRAININGS = ["Leadership Excellence Program","PMP Certification","Data Analytics Fundamentals","Cybersecurity Essentials","Agile & Scrum Practitioner","Excel Advanced Skills","Other"];
-const PROVIDERS = ["Coursera","LinkedIn Learning","PMI","SHRM","Udemy Business","Internal L&D","External Consultant"];
-const VENUES = ["Head Office — Riyadh","Branch — Jeddah","Branch — Dammam","External Training Center","Online / Virtual"];
-const METHODS = ["Classroom / In-person","Online — Self-paced","Online — Instructor-led","Blended","On-the-job training"];
+// ─────────────────────────────────────────────────────────────────────────────
+//  Manager Selection form
+//
+//  Per the client spec, a Manager / Training Unit Head / Talent Dev Manager
+//  uses this screen to create a new training nomination targeted at one of
+//  their direct reports. The form contains ONLY the 5 "Manager Selection"
+//  fields. Once submitted the request is persisted with status
+//  `PendingEmployee` so the chosen employee can complete the rest of the form
+//  through `SmartTrainingForm`.
+// ─────────────────────────────────────────────────────────────────────────────
 
-const SAR_RATE = 3.75;
+interface Props {
+  user: User;
+  onCancel: () => void;
+  onCreate: (req: TrainingRequest) => void;
+}
 
-// Supabase (only created when credentials are provided)
-const _sbUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const _sbKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
-const supabase = _sbUrl && _sbKey ? createClient(_sbUrl, _sbKey) : null;
+const OTHER_COMPETENCY = "Other";
 
-const initialForm = {
-  managerId: "", reporteeId: "", payGrade: "", competency: "", otherCompetency: "",
-  timeFrame: "", trainingDetails: "", trainingTitle: "", provider: "", otherTitle: "",
-  employeeName: "", durationDays: "", weblink: "", targetedGroup: "", courseFeesUSD: "",
-  rating: "", startDay: "", venue: "", endDay: "", trainingCity: "", deliveryMethod: "",
-  costTravel: "", costCourse: "", costPerdiem: "", costVisa: "",
-};
-
-function Field({ label, required, children, full }: { label: string; required?: boolean; children: React.ReactNode; full?: boolean }) {
+function SectionHead({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle?: string }) {
   return (
-    <div className={`flex flex-col gap-1.5 ${full ? "col-span-2" : ""}`}>
+    <div className="flex items-center gap-3 bg-gradient-to-r from-[#1F4128] to-[#2D5A39] px-6 py-4 rounded-t-2xl">
+      <div className="w-9 h-9 bg-white/15 rounded-lg flex items-center justify-center text-white">{icon}</div>
+      <div>
+        <div className="text-white font-bold" style={{ fontSize: "0.95rem" }}>{title}</div>
+        {subtitle && <div className="text-green-200" style={{ fontSize: "0.72rem" }}>{subtitle}</div>}
+      </div>
+    </div>
+  );
+}
+
+function Field({
+  label, required, full, hint, children,
+}: { label: string; required?: boolean; full?: boolean; hint?: string; children: React.ReactNode }) {
+  return (
+    <div className={`flex flex-col gap-1.5 ${full ? "sm:col-span-2" : ""}`}>
       <label className="text-xs font-semibold text-gray-600">
         {label}{required && <span className="text-red-600 ml-0.5">*</span>}
       </label>
       {children}
+      {hint && <div className="text-[0.7rem] text-slate-400">{hint}</div>}
     </div>
   );
 }
 
-const inputCls = "text-sm px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-800 w-full outline-none focus:border-[#2D5A39] focus:ring-2 focus:ring-[#2D5A39]/10 transition";
-const selectCls = inputCls;
-const readonlyCls = "text-sm px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 w-full outline-none cursor-default";
+const inputCls =
+  "text-sm px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-800 w-full outline-none focus:border-[#2D5A39] focus:ring-2 focus:ring-[#2D5A39]/10 transition";
+const readonlyCls =
+  "text-sm px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 w-full outline-none cursor-default";
 
-function SectionHead({ icon, title }: { icon: string; title: string }) {
-  return (
-    <div className="flex items-center gap-3 bg-gradient-to-r from-[#2D5A39] to-[#3D7A4E] px-5 py-3 rounded-t-lg">
-      <span className="text-white text-lg">{icon}</span>
-      <span className="text-sm font-bold text-white tracking-wide">{title}</span>
-    </div>
+export function TrainingNeedAssessment({ user, onCancel, onCreate }: Props) {
+  // The list of direct reports (people who report to this manager).
+  const subordinates = useMemo(
+    () => USERS.filter((u) => u.managerId === user.id),
+    [user.id],
   );
-}
 
-export function TrainingNeedAssessment({ onBack }: { onBack: () => void }) {
-  const [form, setForm] = useState(initialForm);
+  const [employeeId, setEmployeeId] = useState(subordinates[0]?.id ?? "");
+  const [competency, setCompetency] = useState("");
+  const [otherCompetency, setOtherCompetency] = useState("");
+  const [quarter, setQuarter] = useState(QUARTERS[0]);
+  const [details, setDetails] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const val = e.target.value;
-    setForm((prev) => {
-      const next = { ...prev, [key]: val };
-      if (key === "courseFeesUSD") {
-        const usd = parseFloat(val) || 0;
-        next.costCourse = usd > 0 ? (usd * SAR_RATE).toFixed(2) : "";
-      }
-      return next;
-    });
-  };
+  const selectedEmployee = subordinates.find((s) => s.id === employeeId);
+  const competencyOptions = competenciesForDepartment(user.department);
 
-  const total = (() => {
-    const t = [form.costTravel, form.costCourse, form.costPerdiem, form.costVisa]
-      .reduce((s, v) => s + (parseFloat(v) || 0), 0);
-    return t > 0 ? t.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "";
-  })();
-
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     setError("");
-    
-    if (!form.managerId.trim() || !form.reporteeId.trim()) {
-      setError("Please fill in required fields: Manager ID and Employee ID.");
+
+    if (!selectedEmployee) {
+      setError("Please select an employee from your team.");
+      return;
+    }
+    if (!competency) {
+      setError("Please choose a competency.");
+      return;
+    }
+    if (competency === OTHER_COMPETENCY && !otherCompetency.trim()) {
+      setError("Please describe the 'Other' competency.");
       return;
     }
 
-    setLoading(true);
+    const newReq: TrainingRequest = {
+      id: `REQ-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      nominatorId: user.id,
+      nominatorName: user.name,
+      employeeId: selectedEmployee.id,
+      employeeName: selectedEmployee.name,
+      employeeDepartment: selectedEmployee.department,
+      employeeGrade: selectedEmployee.grade,
+      competency: competency === OTHER_COMPETENCY ? otherCompetency.trim() : competency,
+      otherCompetency: competency === OTHER_COMPETENCY ? otherCompetency.trim() : undefined,
+      quarter,
+      trainingDetails: details.trim() || undefined,
+      // Training Details — left blank for the employee to fill in
+      courseTitle: "",
+      provider: "",
+      startDate: "",
+      endDate: "",
+      durationDays: 0,
+      basicCost: 0,
+      currency: "USD",
+      usdCost: 0,
+      trainingMethod: "",
+      venueLocation: "",
+      city: "",
+      status: "PendingEmployee",
+      comments: [`Nominated by ${user.name} (${user.id}).`],
+      createdAt: new Date().toISOString().split("T")[0],
+    };
 
-    try {
-      // Get employee and manager info
-      const employee = USERS.find(u => u.id.toLowerCase() === form.reporteeId.trim().toLowerCase());
-      const manager = USERS.find(u => u.id.toLowerCase() === form.managerId.trim().toLowerCase());
-
-      if (!employee) {
-        throw new Error("Employee not found");
-      }
-
-      // Generate request ID
-      const reqId = `REQ-${Math.floor(1000 + Math.random() * 9000)}`;
-
-      // Create training request object
-      const trainingRequest = {
-        id: reqId,
-        employee_id: employee.id,
-        employee_name: employee.name,
-        employee_department: employee.department,
-        nominator_id: manager?.id || form.managerId,
-        nominator_name: manager?.name || form.managerId,
-        competency: form.competency || form.otherCompetency || "",
-        quarter: form.timeFrame || "Q1-2026",
-        course_title: form.trainingTitle === "Other" ? form.otherTitle : form.trainingTitle,
-        custom_course: form.trainingTitle === "Other" ? form.otherTitle : null,
-        institute_id: form.provider || "I001",
-        start_date: form.startDay || "",
-        end_date: form.endDay || "",
-        duration_days: parseInt(form.durationDays) || 0,
-        basic_cost: parseFloat(form.courseFeesUSD) || 0,
-        currency: "USD",
-        usd_cost: parseFloat(form.courseFeesUSD) || 0,
-        venue_type: form.venue.split(" — ")[0] || "Virtual",
-        city: form.trainingCity || "",
-        status: "PendingAI",
-        comments: [form.trainingDetails || "No additional details provided"],
-        created_at: new Date().toISOString().split("T")[0],
-      };
-
-      // Save to Supabase (if configured), otherwise just succeed
-      if (supabase) {
-        const { error: saveError } = await supabase
-          .from("training_requests")
-          .insert([trainingRequest]);
-
-        if (saveError) {
-          throw new Error(saveError.message);
-        }
-      }
-
-      setSubmitted(true);
-    } catch (err) {
-      setError((err as Error).message || "Failed to submit request");
-      console.error("Submit error:", err);
-    } finally {
-      setLoading(false);
-    }
+    onCreate(newReq);
+    setSubmitted(true);
   };
 
   if (submitted) {
     return (
       <div className="min-h-screen bg-[#F7FAFC] flex flex-col items-center justify-center p-8">
         <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center border-t-4 border-[#2D5A39]">
-          <div className="text-6xl mb-6">✅</div>
-          <h2 className="text-[#2D5A39] font-bold text-2xl mb-3">Request Submitted</h2>
-          <p className="text-gray-600 mb-8">Your Training Need Assessment has been successfully saved to the database and sent for AI audit.</p>
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
+            <Users size={28} className="text-green-700" />
+          </div>
+          <h2 className="text-[#2D5A39] font-bold text-2xl mb-2">Nomination Sent</h2>
+          <p className="text-gray-600 mb-7" style={{ fontSize: "0.9rem" }}>
+            {selectedEmployee?.name} has been notified to complete the training details.
+            The request will move through AI audit and management approvals afterwards.
+          </p>
           <button
-            onClick={onBack}
+            onClick={onCancel}
             className="w-full bg-[#2D5A39] hover:bg-[#1F4128] text-white font-bold py-3 px-6 rounded-lg transition-colors"
           >
             Back to Dashboard
@@ -166,177 +154,158 @@ export function TrainingNeedAssessment({ onBack }: { onBack: () => void }) {
       <div className="bg-white border-b border-gray-200 px-8 py-5 shadow-sm sticky top-0 z-10">
         <div className="max-w-5xl mx-auto flex items-center gap-4">
           <button
-            onClick={onBack}
+            onClick={onCancel}
             className="flex items-center gap-2 text-gray-500 hover:text-[#2D5A39] transition-colors"
+            aria-label="Back"
           >
             <ArrowLeft size={20} />
           </button>
-          <h1 className="text-2xl font-bold text-[#2D5A39]">Training Need Assessment</h1>
+          <div>
+            <h1 className="text-xl font-bold text-[#2D5A39]">Send Training Request</h1>
+            <p className="text-slate-500" style={{ fontSize: "0.78rem" }}>
+              Fill the Manager Selection card — your employee will complete the rest.
+            </p>
+          </div>
         </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-6 mt-8">
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-          <div className="p-8 flex flex-col gap-8">
-            
+          <SectionHead
+            icon={<UserCircle2 size={18} />}
+            title="Manager Selection"
+            subtitle="Information you provide to your employee"
+          />
+
+          <div className="p-7 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700">
-                ⚠️ {error}
+              <div className="sm:col-span-2 bg-red-50 border border-red-200 rounded-xl p-3 text-red-700 text-sm">
+                {error}
               </div>
             )}
 
-            {/* Section 1 */}
-            <div className="border border-gray-200 rounded-xl shadow-sm">
-              <SectionHead icon="👤" title="Manager Selection" />
-              <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5 bg-white rounded-b-xl">
-                <Field label="Manager ID" required>
-                  <input className={inputCls} value={form.managerId} onChange={set("managerId")} />
-                </Field>
-                <Field label="Employee ID" required>
-                  <input className={inputCls} value={form.reporteeId} onChange={set("reporteeId")} />
-                </Field>
-                <Field label="Employee Pay Grade">
-                  <select className={selectCls} value={form.payGrade} onChange={set("payGrade")}>
-                    <option value=""></option>
-                    {GRADES.map(g => <option key={g}>{g}</option>)}
-                  </select>
-                </Field>
-                <Field label="Employee Competencies">
-                  <select className={selectCls} value={form.competency} onChange={set("competency")}>
-                    <option value=""></option>
-                    {COMPETENCIES.map(c => <option key={c}>{c}</option>)}
-                  </select>
-                </Field>
-                <Field label="Other Competencies">
-                  <input className={inputCls} value={form.otherCompetency} onChange={set("otherCompetency")} />
-                </Field>
-                <Field label="Time Frame">
-                  <select className={selectCls} value={form.timeFrame} onChange={set("timeFrame")}>
-                    <option value=""></option>
-                    {TIMEFRAMES.map(t => <option key={t}>{t}</option>)}
-                  </select>
-                </Field>
-                <Field label="More Details For Training Need" full>
-                  <textarea className={inputCls + " resize-y min-h-[80px]"} value={form.trainingDetails} onChange={set("trainingDetails")} />
-                </Field>
-              </div>
-            </div>
+            {/* Manager ID — read-only, auto from session */}
+            <Field label="Manager ID" required>
+              <input className={readonlyCls} value={user.id} readOnly />
+            </Field>
 
-            {/* Section 2 */}
-            <div className="border border-gray-200 rounded-xl shadow-sm">
-              <SectionHead icon="🎓" title="Training Details" />
-              <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5 bg-white rounded-b-xl">
-                <Field label="Training Title" required>
-                  <select className={selectCls} value={form.trainingTitle} onChange={set("trainingTitle")}>
-                    <option value=""></option>
-                    {TRAININGS.map(t => <option key={t}>{t}</option>)}
-                  </select>
-                </Field>
-                <Field label="Provider" required>
-                  <select className={selectCls} value={form.provider} onChange={set("provider")}>
-                    <option value=""></option>
-                    {PROVIDERS.map(p => <option key={p}>{p}</option>)}
-                  </select>
-                </Field>
-                <Field label="Other Training Title">
-                  <input className={inputCls} value={form.otherTitle} onChange={set("otherTitle")} />
-                </Field>
-                <Field label="Employee Name">
-                  <input className={inputCls} value={form.employeeName} onChange={set("employeeName")} />
-                </Field>
-                <Field label="Duration in Days">
-                  <input type="number" className={inputCls} value={form.durationDays} onChange={set("durationDays")} />
-                </Field>
-                <Field label="Course Weblink">
-                  <input type="url" className={inputCls} value={form.weblink} onChange={set("weblink")} />
-                </Field>
-                <Field label="Targeted Group">
-                  <input type="text" className={inputCls} value={form.targetedGroup} onChange={set("targetedGroup")} />
-                </Field>
-                <Field label="Course Fees in USD">
-                  <input type="number" step="0.01" className={inputCls} value={form.courseFeesUSD} onChange={set("courseFeesUSD")} />
-                </Field>
-                <Field label="Course Feedback Rating">
-                  <input type="number" className={inputCls} value={form.rating} onChange={set("rating")} />
-                </Field>
-              </div>
-            </div>
-
-            {/* Section 3 */}
-            <div className="border border-gray-200 rounded-xl shadow-sm">
-              <SectionHead icon="📅" title="Employee Selection" />
-              <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5 bg-white rounded-b-xl">
-                <Field label="Start Day" required>
-                  <input type="date" className={inputCls} value={form.startDay} onChange={set("startDay")} />
-                </Field>
-                <Field label="Venue Location">
-                  <select className={selectCls} value={form.venue} onChange={set("venue")}>
-                    <option value=""></option>
-                    {VENUES.map(v => <option key={v}>{v}</option>)}
-                  </select>
-                </Field>
-                <Field label="End Day" required>
-                  <input type="date" className={inputCls} value={form.endDay} onChange={set("endDay")} />
-                </Field>
-                <Field label="Training City">
-                  <input className={inputCls} value={form.trainingCity} onChange={set("trainingCity")} />
-                </Field>
-                <Field label="Delivery Method">
-                  <select className={selectCls} value={form.deliveryMethod} onChange={set("deliveryMethod")}>
-                    <option value=""></option>
-                    {METHODS.map(m => <option key={m}>{m}</option>)}
-                  </select>
-                </Field>
-              </div>
-            </div>
-
-            {/* Section 4 */}
-            <div className="border border-gray-200 rounded-xl shadow-sm">
-              <SectionHead icon="💰" title="Training Costs" />
-              <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5 bg-white rounded-b-xl">
-                <Field label="Expected Travel Costs (SAR)">
-                  <input type="number" step="0.01" className={inputCls} value={form.costTravel} onChange={set("costTravel")} />
-                </Field>
-                <Field label="Course Fees (SAR)">
-                  <input type="number" step="0.01" className={readonlyCls} value={form.costCourse} readOnly placeholder="Auto-calculated from USD" />
-                </Field>
-                <Field label="Expected Per-Diem Costs (SAR)">
-                  <input type="number" step="0.01" className={inputCls} value={form.costPerdiem} onChange={set("costPerdiem")} />
-                </Field>
-                <Field label="Total Expected Training Costs">
-                  <input readOnly className={readonlyCls} value={total} />
-                </Field>
-                <Field label="Expected Visa Costs (SAR)">
-                  <input type="number" step="0.01" className={inputCls} value={form.costVisa} onChange={set("costVisa")} />
-                </Field>
-              </div>
-            </div>
-
-            {/* Footer Buttons */}
-            <div className="flex justify-end gap-4 mt-4 pt-6 border-t border-gray-200">
-              <button
-                onClick={onBack}
-                disabled={loading}
-                className="px-8 py-3 rounded-lg border-2 border-red-600 text-red-600 font-bold hover:bg-red-50 transition-colors disabled:opacity-50"
+            {/* Employee ID — dropdown of direct reports */}
+            <Field
+              label="Employee ID"
+              required
+              hint={subordinates.length === 0 ? "You have no direct reports configured." : undefined}
+            >
+              <select
+                className={inputCls}
+                value={employeeId}
+                onChange={(e) => setEmployeeId(e.target.value)}
+                disabled={subordinates.length === 0}
               >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={loading}
-                className="px-8 py-3 rounded-lg bg-[#2D5A39] text-white font-bold hover:bg-[#1F4128] transition-colors disabled:opacity-50 flex items-center gap-2"
+                {subordinates.length === 0 && <option value="">— No team members —</option>}
+                {subordinates.map((s) => (
+                  <option key={s.id} value={s.id}>{s.id} — {s.name}</option>
+                ))}
+              </select>
+            </Field>
+
+            {/* Manager Name */}
+            <Field label="Manager Name">
+              <input className={readonlyCls} value={user.name} readOnly />
+            </Field>
+
+            {/* Employee Pay Grade */}
+            <Field label="Employee Pay Grade">
+              <input
+                className={readonlyCls}
+                value={selectedEmployee?.grade ?? ""}
+                readOnly
+                placeholder="—"
+              />
+            </Field>
+
+            {/* Employee Competencies */}
+            <Field label="Employee Competencies" required>
+              <select
+                className={inputCls}
+                value={competency}
+                onChange={(e) => setCompetency(e.target.value)}
               >
-                {loading ? (
-                  <>
-                    <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  "Submit"
-                )}
-              </button>
-            </div>
+                <option value="">Select a competency…</option>
+                {competencyOptions.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+                <option value={OTHER_COMPETENCY}>Other</option>
+              </select>
+            </Field>
+
+            {/* Other Competencies (text) — visible only when "Other" is chosen */}
+            <Field label="Other Competencies">
+              <input
+                className={inputCls}
+                value={otherCompetency}
+                onChange={(e) => setOtherCompetency(e.target.value)}
+                disabled={competency !== OTHER_COMPETENCY}
+                placeholder={competency === OTHER_COMPETENCY ? "Describe the competency…" : "Select 'Other' above to enable"}
+              />
+            </Field>
+
+            {/* Time Frame (Quarter) */}
+            <Field label="Time Frame (Quarter)" required>
+              <select className={inputCls} value={quarter} onChange={(e) => setQuarter(e.target.value)}>
+                {QUARTERS.map((q) => (
+                  <option key={q} value={q}>{q}</option>
+                ))}
+              </select>
+            </Field>
+
+            <div />
+
+            {/* More Details For Training Need */}
+            <Field label="More Details For Training Need" full>
+              <textarea
+                className={inputCls + " resize-y min-h-[110px]"}
+                value={details}
+                onChange={(e) => setDetails(e.target.value)}
+                placeholder="Add any context the employee should know about this training need…"
+              />
+            </Field>
           </div>
+
+          {/* Footer */}
+          <div className="px-7 py-5 bg-[#F7FAFC] border-t border-slate-200 flex flex-col sm:flex-row gap-3 justify-end">
+            <button
+              onClick={onCancel}
+              className="px-7 py-2.5 rounded-lg border-2 border-red-600 text-red-600 font-bold hover:bg-red-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={subordinates.length === 0}
+              className="px-7 py-2.5 rounded-lg bg-[#2D5A39] text-white font-bold hover:bg-[#1F4128] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <FileText size={15} />
+              Send to Employee
+            </button>
+          </div>
+        </div>
+
+        {/* Info side-card */}
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mt-5 flex items-start gap-3">
+          <div className="w-7 h-7 bg-blue-500 rounded-lg flex items-center justify-center text-white flex-shrink-0">
+            <BookOpen size={14} />
+          </div>
+          <div className="text-blue-900" style={{ fontSize: "0.82rem" }}>
+            After you send the request, the employee will see this Manager Selection
+            (read-only) and complete the Training Details section.
+            The full request then moves to AI Audit → Training Unit Head → Talent Development for final approval.
+          </div>
+        </div>
+
+        {/* Calendar legend (small visual) */}
+        <div className="mt-4 flex items-center gap-2 text-slate-500" style={{ fontSize: "0.72rem" }}>
+          <Calendar size={12} />
+          Quarters use the calendar year.
         </div>
       </div>
     </div>

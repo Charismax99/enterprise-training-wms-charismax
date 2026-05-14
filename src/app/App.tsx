@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { TrainingRequest, User, USERS, INITIAL_REQUESTS } from "./data/mockData";
+import { TrainingRequest, User, INITIAL_REQUESTS } from "./data/mockData";
 import { Login } from "./components/Login";
 import { Shell } from "./components/Shell";
 import {
@@ -10,7 +10,6 @@ import {
   HRAdminDashboard,
 } from "./components/Dashboards";
 import { RequestDetail } from "./components/RequestDetail";
-import { NominationModal } from "./components/NominationModal";
 import { TrainingNeedAssessment } from "./components/TrainingNeedAssessment";
 import { supabase as supabaseClient, isSupabaseConfigured } from "../lib/supabase";
 
@@ -26,20 +25,26 @@ function rowToRequest(row: Record<string, unknown>): TrainingRequest {
     employeeId: row.employee_id as string,
     employeeName: row.employee_name as string,
     employeeDepartment: row.employee_department as string | undefined,
+    employeeGrade: row.employee_grade as string | undefined,
     nominatorId: row.nominator_id as string,
     nominatorName: row.nominator_name as string,
     competency: (row.competency as string) ?? "",
+    otherCompetency: row.other_competency as string | undefined,
     quarter: (row.quarter as string) ?? "",
+    trainingDetails: row.training_details as string | undefined,
     courseTitle: (row.course_title as string) ?? "",
     customCourse: row.custom_course as string | undefined,
-    instituteId: (row.institute_id as string) ?? "",
+    // Tolerate legacy rows whose institute id was stored instead of name.
+    provider: ((row.provider as string) ?? (row.institute_id as string) ?? ""),
+    courseWeblink: row.course_weblink as string | undefined,
     startDate: (row.start_date as string) ?? "",
     endDate: (row.end_date as string) ?? "",
     durationDays: (row.duration_days as number) ?? 0,
     basicCost: (row.basic_cost as number) ?? 0,
     currency: (row.currency as string) ?? "USD",
     usdCost: (row.usd_cost as number) ?? 0,
-    venueType: (row.venue_type as string) ?? "",
+    trainingMethod: ((row.training_method as string) ?? ""),
+    venueLocation: ((row.venue_location as string) ?? (row.venue_type as string) ?? ""),
     city: (row.city as string) ?? "",
     status: row.status as TrainingRequest["status"],
     comments: (row.comments as string[]) ?? [],
@@ -53,20 +58,25 @@ function requestToRow(r: TrainingRequest): Record<string, unknown> {
     employee_id: r.employeeId,
     employee_name: r.employeeName,
     employee_department: r.employeeDepartment,
+    employee_grade: r.employeeGrade,
     nominator_id: r.nominatorId,
     nominator_name: r.nominatorName,
     competency: r.competency,
+    other_competency: r.otherCompetency,
     quarter: r.quarter,
+    training_details: r.trainingDetails,
     course_title: r.courseTitle,
     custom_course: r.customCourse,
-    institute_id: r.instituteId,
+    provider: r.provider,
+    course_weblink: r.courseWeblink,
     start_date: r.startDate,
     end_date: r.endDate,
     duration_days: r.durationDays,
     basic_cost: r.basicCost,
     currency: r.currency,
     usd_cost: r.usdCost,
-    venue_type: r.venueType,
+    training_method: r.trainingMethod,
+    venue_location: r.venueLocation,
     city: r.city,
     status: r.status,
     comments: r.comments,
@@ -77,11 +87,11 @@ function requestToRow(r: TrainingRequest): Record<string, unknown> {
 // ── Client-side AI auditor ────────────────────────────────────────────────────
 
 function aiAudit(req: TrainingRequest): { pass: boolean; comment: string } {
-  if (req.usdCost > 10000)
-    return { pass: false, comment: "AI Auditor: Cost exceeds $10,000 cap. Please justify or revise." };
+  if (req.usdCost > 15000)
+    return { pass: false, comment: "AI Auditor: Cost exceeds $15,000 cap. Please justify or revise." };
   if (req.durationDays <= 0)
     return { pass: false, comment: "AI Auditor: Invalid date range." };
-  if (!req.courseTitle || !req.instituteId || !req.city)
+  if (!req.courseTitle || !req.provider || !req.city || !req.venueLocation)
     return { pass: false, comment: "AI Auditor: Missing required fields." };
   return { pass: true, comment: "AI Auditor: All consistency checks passed. ✓" };
 }
@@ -116,7 +126,6 @@ export default function App() {
   const [requests, setRequests] = useState<TrainingRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState<View>({ kind: "list" });
-  const [showNominate, setShowNominate] = useState(false);
 
   // ── Persist a single request (no-op in demo mode) ────────────────────────
   const saveRequest = useCallback(async (request: TrainingRequest) => {
@@ -234,7 +243,6 @@ export default function App() {
   const handleCreate = async (r: TrainingRequest) => {
     setRequests((prev) => [r, ...prev]);
     await saveRequest(r);
-    setShowNominate(false);
   };
 
   const handleLogout = () => {
@@ -247,7 +255,15 @@ export default function App() {
   // ── Views ─────────────────────────────────────────────────────────────────
 
   if (view.kind === "assessment") {
-    return <TrainingNeedAssessment onBack={() => setView({ kind: "list" })} />;
+    return (
+      <TrainingNeedAssessment
+        user={user}
+        onCancel={() => setView({ kind: "list" })}
+        onCreate={(r) => {
+          handleCreate(r);
+        }}
+      />
+    );
   }
 
   if (view.kind === "detail") {
@@ -303,7 +319,7 @@ export default function App() {
           user={user}
           requests={requests}
           onView={(r) => setView({ kind: "detail", id: r.id })}
-          onNewNomination={() => setShowNominate(true)}
+          onNewNomination={() => setView({ kind: "assessment" })}
           onNavigateToAssessment={() => setView({ kind: "assessment" })}
         />
       )}
@@ -314,7 +330,7 @@ export default function App() {
           onView={(r) => setView({ kind: "detail", id: r.id })}
           onApprove={handleApprove}
           onReject={handleReject}
-          onNewNomination={() => setShowNominate(true)}
+          onNewNomination={() => setView({ kind: "assessment" })}
           onNavigateToAssessment={() => setView({ kind: "assessment" })}
         />
       )}
@@ -325,7 +341,7 @@ export default function App() {
           onView={(r) => setView({ kind: "detail", id: r.id })}
           onApprove={handleApprove}
           onReject={handleReject}
-          onNewNomination={() => setShowNominate(true)}
+          onNewNomination={() => setView({ kind: "assessment" })}
           onNavigateToAssessment={() => setView({ kind: "assessment" })}
         />
       )}
@@ -338,13 +354,6 @@ export default function App() {
         />
       )}
 
-      {showNominate && (
-        <NominationModal
-          manager={user}
-          onClose={() => setShowNominate(false)}
-          onCreate={handleCreate}
-        />
-      )}
     </Shell>
   );
 }

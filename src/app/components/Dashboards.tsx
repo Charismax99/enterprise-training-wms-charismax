@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { TrainingRequest, User, USERS, INSTITUTES, RequestStatus } from "../data/mockData";
+import { TrainingRequest, User, USERS, RequestStatus } from "../data/mockData";
 import { RequestsTable } from "./RequestsTable";
 import {
   Plus, FileText, CheckCircle2, Clock, DollarSign, Users as UsersIcon,
@@ -230,17 +230,6 @@ export function EmployeeDashboard({
 
   return (
     <div className="space-y-6">
-      {/* Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-4">
-        <button
-          onClick={onNavigateToAssessment}
-          className="bg-[#2D5A39] hover:bg-[#1F4128] text-white px-6 py-3 rounded-xl font-bold shadow-md flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02]"
-        >
-          <Plus size={18} />
-          New Training Request
-        </button>
-      </div>
-
       {/* 3 Functional Icons */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <FuncCard icon={FileText}     label="My Requests"  value={mine.length}     color="bg-[#2D5A39]" />
@@ -298,15 +287,8 @@ export function ManagerDashboard({
         <FuncCard icon={CheckCircle2} label="Approved"            value={approved.length}      color="bg-green-600" />
         <FuncCard icon={GitBranch}    label="Workflow"            value={workflow.length}      color="bg-[#F6AD55]" />
         <FuncCard
-          icon={UserPlus} label="Nominate Employee" color="bg-[#1F4128]"
-          onClick={onNewNomination} clickLabel="Click to nominate"
-        />
-        <FuncCard
-          icon={BookOpen}
-          label="Training Assessment"
-          color="bg-slate-600"
-          onClick={onNavigateToAssessment}
-          clickLabel="Submit assessment"
+          icon={UserPlus} label="Send Training Request" color="bg-[#1F4128]"
+          onClick={onNewNomination} clickLabel="Nominate a team member"
         />
       </div>
 
@@ -388,11 +370,11 @@ export function UnitHeadDashboard({
         />
         <FuncCard icon={XCircle}      label="Rejected"           value={requests.filter(r => r.status === "Rejected").length} color="bg-red-500" />
         <FuncCard
-          icon={BookOpen}
-          label="Training Assessment"
-          color="bg-slate-600"
-          onClick={onNavigateToAssessment}
-          clickLabel="Submit assessment"
+          icon={UserPlus}
+          label="Send Training Request"
+          color="bg-[#1F4128]"
+          onClick={onNewNomination}
+          clickLabel="Nominate a team member"
         />
       </div>
 
@@ -462,11 +444,11 @@ export function TalentDevDashboard({
         <FuncCard icon={CheckCircle2} label="Approved YTD"      value={approvedReqs.length} color="bg-green-600" />
         <FuncCard icon={DollarSign}  label="Approved Budget"    value={`$${totalBudget.toLocaleString()}`} color="bg-[#1F4128]" />
         <FuncCard
-          icon={BookOpen}
-          label="Training Assessment"
-          color="bg-slate-600"
-          onClick={onNavigateToAssessment}
-          clickLabel="Submit assessment"
+          icon={UserPlus}
+          label="Send Training Request"
+          color="bg-[#1F4128]"
+          onClick={onNewNomination}
+          clickLabel="Nominate a team member"
         />
       </div>
 
@@ -524,15 +506,14 @@ export function HRAdminDashboard({
   const inProgress   = requests.filter((r) => !["Approved", "Rejected"].includes(r.status)).length;
   const totalBudget  = requests.filter((r) => r.status === "Approved").reduce((a, b) => a + b.usdCost, 0);
 
-  /* Top Institute */
+  /* Top Provider */
   const topInstitutes = useMemo(() => {
     const map: Record<string, number> = {};
     requests.forEach((r) => {
-      if (r.instituteId) map[r.instituteId] = (map[r.instituteId] || 0) + 1;
+      if (r.provider) map[r.provider] = (map[r.provider] || 0) + 1;
     });
-    return INSTITUTES
-      .map((inst) => ({ name: inst.name, count: map[inst.id] || 0 }))
-      .filter((i) => i.count > 0)
+    return Object.entries(map)
+      .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
   }, [requests]);
@@ -540,7 +521,7 @@ export function HRAdminDashboard({
   const maxInstCount = topInstitutes[0]?.count || 1;
 
   /* Quarterly */
-  const quarters = ["Q1-2026", "Q2-2026", "Q3-2026", "Q4-2026"];
+  const quarters = ["Q1", "Q2", "Q3", "Q4"];
   const quarterlyData = useMemo(() =>
     quarters.map((q) => {
       const qReqs = requests.filter((r) => r.quarter === q);
@@ -590,7 +571,7 @@ export function HRAdminDashboard({
       ["ID", "Employee", "Department", "Course", "Institute", "Quarter", "Status", "USD Cost", "Start", "End"].join(","),
       ...requests.map((r) =>
         [r.id, r.employeeName, r.employeeDepartment || "—", `"${r.courseTitle}"`,
-         INSTITUTES.find((i) => i.id === r.instituteId)?.name || r.instituteId,
+         r.provider || "—",
          r.quarter, r.status, r.usdCost, r.startDate, r.endDate].join(",")
       ),
     ].join("\n");
@@ -621,13 +602,6 @@ export function HRAdminDashboard({
           sub="Completed full cycle" />
         <FuncCard icon={Clock}        label="In Progress"           value={inProgress}   color="bg-[#F6AD55]" />
         <FuncCard icon={DollarSign}   label="Total Approved Budget" value={`$${totalBudget.toLocaleString()}`} color="bg-[#1F4128]" />
-        <FuncCard
-          icon={BookOpen}
-          label="Training Assessment"
-          color="bg-slate-600"
-          onClick={onNavigateToAssessment}
-          clickLabel="Submit assessment"
-        />
       </div>
 
       {/* ── Analytics Row 1 ── */}
