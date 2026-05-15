@@ -1,9 +1,18 @@
-{
-  "redirects": [
-    {
-      "source": "/((?!maintenance.html).*)",
-      "destination": "/maintenance.html",
-      "permanent": false
-    }
-  ]
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Maintenance Mode</title>
+    <style>
+        body { text-align: center; padding: 50px; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; background: #fff; }
+        h1 { color: #2d3436; font-size: 32px; }
+        p { color: #636e72; font-size: 18px; line-height: 1.6; max-width: 600px; margin: 0 auto 30px; }
+        img { max-width: 100%; height: auto; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <h1>Systems Update in Progress</h1>
+    <p>We are currently performing scheduled technical enhancements to the T-WMS platform to ensure the highest performance and security. We will be back online shortly.</p>
+    <img src="https://hakimisolutions.com/wp-content/uploads/maintenance-partner-min.png" alt="Maintenance">
+</body>
+</html>
