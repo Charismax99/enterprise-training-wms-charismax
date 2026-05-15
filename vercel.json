@@ -1,1 +1,9 @@
-{   "redirects": [     {       "source": "/((?!.*).*)",       "destination": "https://hakimisolutions.com/wp-content/uploads/maintenance-partner-min.png",       "permanent": false     }   ]
+{
+  "redirects": [
+    {
+      "source": "/((?!.*).*)",
+      "destination": "https://hakimisolutions.com/wp-content/uploads/maintenance-partner-min.png",
+      "permanent": false
+    }
+  ]
+}
